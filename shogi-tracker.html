@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="星取表">
+<title>将棋星取表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F2F2F7;
+    --card: #FFFFFF;
+    --label: #000000;
+    --secondary: #3C3C43;
+    --tertiary: rgba(60,60,67,0.6);
+    --quaternary: rgba(60,60,67,0.3);
+    --separator: rgba(60,60,67,0.12);
+    --fill: rgba(120,120,128,0.2);
+    --red: #FF3B30;
+    --blue: #007AFF;
+    --gray: #8E8E93;
+    --gray2: #AEAEB2;
+    --gray3: #C7C7CC;
+    --gray5: #E5E5EA;
+    --p1: #FF6165;
+    --p1-soft: rgba(255,97,101,0.12);
+    --p2: #007AFF;
+    --p2-soft: rgba(0,122,255,0.12);
+    --font-jp: 'Noto Sans JP', -apple-system, sans-serif;
+    --font-num: 'Roboto', -apple-system, sans-serif;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg);
+    font-family: var(--font-num), var(--font-jp);
+    max-width: 420px;
+    margin: 0 auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+  }
+  button { font-family: inherit; }
+  @keyframes hig-fade {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .flash-msg { animation: hig-fade 0.3s ease; }
+
+  /* Score Card */
+  .score-card {
+    background: var(--card);
+    border-radius: 16px;
+    margin: 16px 16px 12px;
+    box-shadow: 0 0.5px 1px rgba(0,0,0,0.04);
+    overflow: hidden;
+  }
+  .scoreboard {
+    display: flex; align-items: center; justify-content: center;
+    padding: 28px 16px 12px;
+  }
+  .player-score { text-align: center; flex: 1; }
+  .player-name {
+    font-size: 15px; font-weight: 600; color: var(--secondary);
+    font-family: var(--font-jp); margin-bottom: 6px;
+  }
+  .player-num {
+    font-size: 64px; font-weight: 700;
+    font-family: var(--font-num); letter-spacing: -2px; line-height: 1;
+  }
+  .score-center {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 0 12px; gap: 2px;
+  }
+  .score-center span:first-child, .score-center span:last-child {
+    font-size: 11px; color: var(--gray); font-family: var(--font-jp); font-weight: 600;
+  }
+  .score-center .dash {
+    font-size: 20px; color: var(--gray3); font-family: var(--font-num);
+    font-weight: 300; line-height: 1;
+  }
+  .sep { height: 0.5px; background: var(--separator); margin: 0 16px; }
+
+  /* Date row */
+  .date-row {
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; padding: 12px 16px;
+  }
+  .chevron-btn {
+    background: none; border: none; cursor: pointer;
+    padding: 8px; display: flex; align-items: center;
+  }
+  .date-label {
+    position: relative; padding: 6px 16px; border-radius: 8px;
+    font-size: 15px; font-weight: 600; letter-spacing: 0.5px;
+  }
+  .date-label input[type="date"] {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    opacity: 0; cursor: pointer; z-index: 2;
+  }
+  .date-today-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 15px; color: var(--blue); font-family: var(--font-jp);
+    font-weight: 500; padding: 4px 0;
+  }
+
+  /* Entry buttons */
+  .entry-hint {
+    font-size: 13px; color: var(--gray); text-align: center;
+    font-family: var(--font-jp); font-weight: 500;
+    margin-bottom: 10px; letter-spacing: 1px;
+  }
+  .entry-buttons { display: flex; gap: 12px; justify-content: center; padding: 0 16px 8px; }
+  .entry-btn {
+    flex: 1; max-width: 170px; height: 170px; border-radius: 16px;
+    border: none; cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 4px;
+  }
+  .entry-btn .circle { font-size: 48px; font-weight: 700; font-family: var(--font-num); line-height: 1; }
+  .entry-btn .name { font-size: 20px; font-weight: 700; font-family: var(--font-jp); letter-spacing: 2px; }
+
+  /* Segmented control */
+  .seg-control {
+    display: flex; padding: 2px; margin: 0 16px 12px;
+    background: var(--fill); border-radius: 9px;
+  }
+  .seg-btn {
+    flex: 1; padding: 7px 0; border: none; border-radius: 7px;
+    cursor: pointer; font-size: 13px; font-family: var(--font-jp);
+    transition: all 0.2s ease;
+  }
+  .seg-btn.active {
+    background: var(--card); color: var(--label); font-weight: 600;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0.5px 1px rgba(0,0,0,0.06);
+  }
+  .seg-btn:not(.active) {
+    background: transparent; color: var(--secondary); font-weight: 500;
+  }
+
+  /* Content card */
+  .content-card {
+    background: var(--card); border-radius: 16px; margin: 0 16px;
+    box-shadow: 0 0.5px 1px rgba(0,0,0,0.04);
+    overflow: hidden; min-height: 200px;
+  }
+
+  /* List view */
+  .list-empty {
+    text-align: center; padding: 56px 0; color: var(--tertiary);
+    font-family: var(--font-jp); font-size: 15px;
+  }
+  .list-date-header {
+    font-size: 13px; font-weight: 600; color: var(--secondary);
+    padding: 20px 16px 6px; font-family: var(--font-jp);
+  }
+  .list-date-header:first-child { padding-top: 8px; }
+  .list-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 0.5px solid var(--separator);
+    background: var(--card);
+  }
+  .list-row-left { display: flex; align-items: center; gap: 10px; }
+  .list-num {
+    font-size: 12px; color: var(--tertiary); font-family: var(--font-num);
+    font-weight: 500; width: 32px;
+  }
+  .list-result { display: flex; align-items: center; gap: 6px; }
+  .list-del {
+    background: none; border: none; cursor: pointer;
+    color: var(--gray3); font-size: 20px; padding: 2px 4px;
+    line-height: 1; border-radius: 4px;
+  }
+
+  /* Calendar */
+  .cal-nav {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0 14px;
+  }
+  .cal-title { font-family: var(--font-num); font-size: 17px; font-weight: 700; color: var(--label); }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-day-label {
+    text-align: center; font-size: 11px; font-weight: 600;
+    padding: 4px 0; font-family: var(--font-jp);
+  }
+  .cal-cell {
+    min-height: 50px; padding: 2px; border-radius: 10px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .cal-day-num {
+    width: 24px; height: 24px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-family: var(--font-num);
+  }
+  .cal-day-num.today { background: var(--blue); color: #fff !important; font-weight: 700; }
+  .cal-dots { display: flex; gap: 2px; margin-top: 2px; flex-wrap: wrap; justify-content: center; }
+  .cal-dot { font-size: 8px; font-weight: 700; font-family: var(--font-num); line-height: 1; }
+
+  /* Chart */
+  .chart-container { padding: 16px; }
+  .donut-wrap { display: flex; justify-content: center; margin-bottom: 20px; }
+  .donut-center {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .donut-num { font-size: 32px; font-weight: 700; color: var(--label); font-family: var(--font-num); }
+  .donut-label { font-size: 11px; color: var(--gray); font-family: var(--font-jp); font-weight: 500; }
+  .legend { display: flex; justify-content: center; gap: 28px; margin-bottom: 20px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+  .rate-bar {
+    margin: 0 0 24px; border-radius: 6px; overflow: hidden;
+    height: 8px; display: flex; background: var(--gray5);
+  }
+  .monthly-title {
+    font-size: 13px; font-weight: 600; color: var(--secondary);
+    font-family: var(--font-jp); margin-bottom: 10px;
+  }
+  .monthly-row {
+    display: flex; align-items: center; gap: 10px; padding: 8px 0;
+    border-bottom: 0.5px solid var(--separator);
+  }
+  .monthly-row:last-child { border-bottom: none; }
+  .monthly-bar {
+    flex: 1; display: flex; height: 6px; border-radius: 3px;
+    overflow: hidden; background: var(--gray5);
+  }
+
+  /* Reset */
+  .reset-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 13px; color: var(--gray); font-family: var(--font-jp); font-weight: 400;
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(function() {
+  const STORAGE_KEY = "shogi-records-v2";
+  const PLAYERS = [
+    { id: "yousuke", name: "ようすけ", color: "#FF6165", soft: "rgba(255,97,101,0.12)" },
+    { id: "riku", name: "りく", color: "#007AFF", soft: "rgba(0,122,255,0.12)" },
+  ];
+
+  // --- State ---
+  let records = [];
+  let view = "list";
+  let selectedDate = getToday();
+  let calYear = new Date().getFullYear();
+  let calMonth = new Date().getMonth();
+  let flashId = null;
+  let flashTimer = null;
+
+  function getToday() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  }
+  function fmtDateFull(s) {
+    const [y,m,d] = s.split("-");
+    return `${y}年${parseInt(m)}月${parseInt(d)}日`;
+  }
+  function daysInMonth(y,m) { return new Date(y,m+1,0).getDate(); }
+  function firstDayOfMonth(y,m) { return new Date(y,m,1).getDay(); }
+
+  // --- Storage ---
+  function loadRecords() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) records = JSON.parse(raw);
+    } catch(e) {}
+  }
+  function saveRecords() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); } catch(e) {}
+  }
+
+  // --- Actions ---
+  function addRecord(winnerId) {
+    records.push({ id: Date.now(), date: selectedDate, winner: winnerId });
+    saveRecords();
+    flashId = winnerId;
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => { flashId = null; render(); }, 800);
+    render();
+  }
+  function deleteRecord(id) {
+    records = records.filter(r => r.id !== id);
+    saveRecords();
+    render();
+  }
+  function setView(v) { view = v; render(); }
+  function setSelectedDate(d) { selectedDate = d; render(); }
+  function shiftDate(days) {
+    const d = new Date(selectedDate + "T00:00:00");
+    d.setDate(d.getDate() + days);
+    const s = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+    if (s <= getToday()) { selectedDate = s; render(); }
+  }
+  function prevMonth() {
+    if (calMonth === 0) { calYear--; calMonth = 11; } else calMonth--;
+    render();
+  }
+  function nextMonth() {
+    if (calMonth === 11) { calYear++; calMonth = 0; } else calMonth++;
+    render();
+  }
+  function resetAll() {
+    if (confirm("全ての記録をリセットしますか？")) {
+      records = [];
+      saveRecords();
+      render();
+    }
+  }
+
+  // Expose to onclick
+  window._a = addRecord;
+  window._d = deleteRecord;
+  window._v = setView;
+  window._sd = setSelectedDate;
+  window._sh = shiftDate;
+  window._pm = prevMonth;
+  window._nm = nextMonth;
+  window._reset = resetAll;
+  window._onDateInput = function(e) { if(e.target.value) { selectedDate = e.target.value; render(); } };
+
+  // --- Render ---
+  function render() {
+    const app = document.getElementById("app");
+    const isToday = selectedDate === getToday();
+    const p1w = records.filter(r => r.winner === PLAYERS[0].id).length;
+    const p2w = records.filter(r => r.winner === PLAYERS[1].id).length;
+
+    let html = "";
+
+    // Score Card
+    html += `<div class="score-card">`;
+    // Scoreboard
+    html += `<div class="scoreboard">`;
+    html += `<div class="player-score"><div class="player-name">${PLAYERS[0].name}</div><div class="player-num" style="color:${PLAYERS[0].color}">${String(p1w).padStart(2,"0")}</div></div>`;
+    html += `<div class="score-center"><span>勝</span><span class="dash">–</span><span>勝</span></div>`;
+    html += `<div class="player-score"><div class="player-name">${PLAYERS[1].name}</div><div class="player-num" style="color:${PLAYERS[1].color}">${String(p2w).padStart(2,"0")}</div></div>`;
+    html += `</div>`;
+    html += `<div class="sep"></div>`;
+
+    // Date row
+    html += `<div class="date-row">`;
+    html += `<button class="chevron-btn" onclick="_sh(-1)"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7L7 13" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
+    html += `<div class="date-label" style="background:${isToday ? 'transparent' : 'rgba(255,97,101,0.1)'};color:${isToday ? 'var(--label)' : 'var(--p1)'};font-family:${isToday ? 'var(--font-jp)' : 'var(--font-num)'}">`;
+    html += `<input type="date" value="${selectedDate}" max="${getToday()}" onchange="_onDateInput(event)">`;
+    html += isToday ? "今日" : fmtDateFull(selectedDate);
+    html += `</div>`;
+    html += `<button class="chevron-btn" onclick="_sh(1)" style="opacity:${isToday ? 0.2 : 1}"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
+    if (!isToday) html += `<button class="date-today-btn" onclick="_sd('${getToday()}')">今日に戻す</button>`;
+    html += `</div>`;
+
+    // Entry
+    html += `<div class="entry-hint">勝った方をタップ</div>`;
+    html += `<div class="entry-buttons">`;
+    PLAYERS.forEach(p => {
+      const isFlash = flashId === p.id;
+      html += `<button class="entry-btn" onclick="_a('${p.id}')" style="background:${isFlash ? p.color : p.soft};color:${isFlash ? '#fff' : p.color}">`;
+      html += `<span class="circle">◯</span><span class="name">${p.name}</span>`;
+      html += `</button>`;
+    });
+    html += `</div>`;
+    if (flashId) {
+      const fp = PLAYERS.find(p => p.id === flashId);
+      html += `<div class="flash-msg" style="text-align:center;margin:10px 0 4px;font-size:14px;font-weight:600;color:${fp.color};font-family:var(--font-jp)">${fp.name} の勝ち！${!isToday ? ` (${fmtDateFull(selectedDate)})` : ''}</div>`;
+    }
+    html += `</div>`; // score-card
+
+    // Segmented Control
+    html += `<div class="seg-control">`;
+    [["list","一覧"],["calendar","カレンダー"],["chart","グラフ"]].forEach(([k,l]) => {
+      html += `<button class="seg-btn ${view===k?'active':''}" onclick="_v('${k}')">${l}</button>`;
+    });
+    html += `</div>`;
+
+    // Content
+    html += `<div class="content-card">`;
+    if (view === "list") html += renderList();
+    else if (view === "calendar") html += renderCalendar();
+    else html += renderChart(p1w, p2w);
+    html += `</div>`;
+
+    // Reset
+    if (records.length > 0) {
+      html += `<div style="text-align:center;padding:24px 0 40px"><button class="reset-btn" onclick="_reset()">記録をリセット</button></div>`;
+    }
+
+    app.innerHTML = html;
+  }
+
+  function renderList() {
+    if (records.length === 0) return `<div class="list-empty">対局記録がありません</div>`;
+    const sorted = [...records].sort((a,b) => {
+      if (b.date !== a.date) return b.date.localeCompare(a.date);
+      return b.id - a.id;
+    });
+    let html = "", lastDate = null;
+    sorted.forEach((rec, i) => {
+      const showDate = rec.date !== lastDate;
+      lastDate = rec.date;
+      const w = PLAYERS.find(p => p.id === rec.winner);
+      const l = PLAYERS.find(p => p.id !== rec.winner);
+      if (showDate) html += `<div class="list-date-header" ${i===0?'style="padding-top:8px"':''}>${fmtDateFull(rec.date)}</div>`;
+      html += `<div class="list-row">`;
+      html += `<div class="list-row-left">`;
+      html += `<span class="list-num">#${sorted.length - i}</span>`;
+      html += `<div class="list-result">`;
+      html += `<span style="font-size:18px;font-weight:700;color:${w.color};font-family:var(--font-num)">◯</span>`;
+      html += `<span style="font-size:16px;font-weight:600;color:${w.color};font-family:var(--font-jp)">${w.name}</span>`;
+      html += `<span style="font-size:12px;color:var(--gray3);font-family:var(--font-num);margin:0 2px;font-weight:500">vs</span>`;
+      html += `<span style="font-size:14px;font-weight:600;color:var(--gray3);font-family:var(--font-num)">✕</span>`;
+      html += `<span style="font-size:14px;font-weight:400;color:var(--gray2);font-family:var(--font-jp)">${l.name}</span>`;
+      html += `</div></div>`;
+      html += `<button class="list-del" onclick="_d(${rec.id})">×</button>`;
+      html += `</div>`;
+    });
+    return html;
+  }
+
+  function renderCalendar() {
+    const dim = daysInMonth(calYear, calMonth);
+    const fd = firstDayOfMonth(calYear, calMonth);
+    const labels = ["日","月","火","水","木","金","土"];
+    const todayStr = getToday();
+    const [ty,tm,td] = todayStr.split("-").map(Number);
+    const isCurMonth = ty === calYear && tm-1 === calMonth;
+
+    // Build day map
+    const byDay = {};
+    records.forEach(r => {
+      const [y,m,d] = r.date.split("-").map(Number);
+      if (y===calYear && m-1===calMonth) { if(!byDay[d]) byDay[d]=[]; byDay[d].push(r); }
+    });
+
+    let html = `<div style="padding:4px 12px 8px">`;
+    // Nav
+    html += `<div class="cal-nav">`;
+    html += `<button class="chevron-btn" onclick="_pm()"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M7 1L1 7L7 13" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
+    html += `<span class="cal-title">${calYear}<span style="font-family:var(--font-jp)">年</span>${calMonth+1}<span style="font-family:var(--font-jp)">月</span></span>`;
+    html += `<button class="chevron-btn" onclick="_nm()"><svg width="8" height="14" viewBox="0 0 8 14" fill="none"><path d="M1 1L7 7L1 13" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`;
+    html += `</div>`;
+    // Grid
+    html += `<div class="cal-grid">`;
+    labels.forEach((l,i) => {
+      const col = i===0?'var(--red)':i===6?'var(--blue)':'var(--tertiary)';
+      html += `<div class="cal-day-label" style="color:${col}">${l}</div>`;
+    });
+    for (let i=0; i<fd; i++) html += `<div></div>`;
+    for (let day=1; day<=dim; day++) {
+      const recs = byDay[day] || [];
+      const isT = isCurMonth && day === td;
+      const dow = (fd + day - 1) % 7;
+      const col = isT ? '#fff' : dow===0 ? 'var(--red)' : dow===6 ? 'var(--blue)' : 'var(--label)';
+      html += `<div class="cal-cell">`;
+      html += `<div class="cal-day-num ${isT?'today':''}" style="color:${col};font-weight:${isT?700:400}">${day}</div>`;
+      if (recs.length > 0) {
+        const p1w = recs.filter(r=>r.winner===PLAYERS[0].id).length;
+        const p2w = recs.filter(r=>r.winner===PLAYERS[1].id).length;
+        html += `<div class="cal-dots">`;
+        if (p1w > 0) html += `<span class="cal-dot" style="color:${PLAYERS[0].color}">◯${p1w>1?p1w:''}</span>`;
+        if (p2w > 0) html += `<span class="cal-dot" style="color:${PLAYERS[1].color}">◯${p2w>1?p2w:''}</span>`;
+        html += `</div>`;
+      }
+      html += `</div>`;
+    }
+    html += `</div></div>`;
+    return html;
+  }
+
+  function renderChart(p1w, p2w) {
+    const total = p1w + p2w;
+    if (total === 0) return `<div class="list-empty">対局記録がありません</div>`;
+    const p1p = (p1w/total)*100, p2p = (p2w/total)*100;
+    const size=180, cx=90, cy=90, r=68, sw=28;
+    const circ = 2*Math.PI*r;
+    const p1a = (p1w/total)*circ, p2a = (p2w/total)*circ;
+
+    // Monthly
+    const mmap = {};
+    records.forEach(rec => {
+      const k = rec.date.slice(0,7);
+      if(!mmap[k]) mmap[k]={p1:0,p2:0};
+      if(rec.winner===PLAYERS[0].id) mmap[k].p1++; else mmap[k].p2++;
+    });
+    const monthly = Object.entries(mmap).sort(([a],[b])=>b.localeCompare(a)).map(([ym,d])=>{
+      const m = parseInt(ym.split("-")[1]);
+      return {label:m+"月", ...d, total:d.p1+d.p2};
+    });
+    const barMax = Math.max(...monthly.map(x=>x.total),1);
+
+    let html = `<div class="chart-container">`;
+    // Donut
+    html += `<div class="donut-wrap"><div style="position:relative;width:${size}px;height:${size}px">`;
+    html += `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">`;
+    html += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--gray5)" stroke-width="${sw}"/>`;
+    html += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${PLAYERS[0].color}" stroke-width="${sw}" stroke-dasharray="${p1a} ${circ-p1a}" stroke-dashoffset="${circ*0.25}" stroke-linecap="butt"/>`;
+    html += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${PLAYERS[1].color}" stroke-width="${sw}" stroke-dasharray="${p2a} ${circ-p2a}" stroke-dashoffset="${circ*0.25-p1a}" stroke-linecap="butt"/>`;
+    html += `</svg>`;
+    html += `<div class="donut-center"><span class="donut-num">${total}</span><span class="donut-label">局</span></div>`;
+    html += `</div></div>`;
+
+    // Legend
+    html += `<div class="legend">`;
+    PLAYERS.forEach((p,i) => {
+      const w = i===0?p1w:p2w, pct = i===0?p1p:p2p;
+      html += `<div class="legend-item"><div class="legend-dot" style="background:${p.color}"></div>`;
+      html += `<span style="font-size:14px;font-weight:600;color:${p.color};font-family:var(--font-jp)">${p.name}</span>`;
+      html += `<span style="font-size:14px;color:var(--secondary);font-family:var(--font-num);font-weight:500">${w}勝</span>`;
+      html += `<span style="font-size:13px;color:var(--gray);font-family:var(--font-num)">(${pct.toFixed(1)}%)</span>`;
+      html += `</div>`;
+    });
+    html += `</div>`;
+
+    // Rate bar
+    html += `<div class="rate-bar"><div style="width:${p1p}%;background:${PLAYERS[0].color};transition:width 0.5s"></div><div style="width:${p2p}%;background:${PLAYERS[1].color};transition:width 0.5s"></div></div>`;
+
+    // Monthly
+    if (monthly.length > 0) {
+      html += `<div class="monthly-title">月別成績</div>`;
+      monthly.forEach((m,i) => {
+        html += `<div class="monthly-row" ${i===monthly.length-1?'style="border-bottom:none"':''}>`;
+        html += `<span style="font-size:13px;color:var(--secondary);width:32px;text-align:right;font-family:var(--font-jp);font-weight:500;flex-shrink:0">${m.label}</span>`;
+        html += `<div class="monthly-bar"><div style="width:${(m.p1/barMax)*100}%;background:${PLAYERS[0].color}"></div><div style="width:${(m.p2/barMax)*100}%;background:${PLAYERS[1].color}"></div></div>`;
+        html += `<span style="font-size:13px;color:var(--secondary);width:44px;text-align:right;font-family:var(--font-num);font-weight:600;flex-shrink:0">${m.p1}–${m.p2}</span>`;
+        html += `</div>`;
+      });
+    }
+    html += `</div>`;
+    return html;
+  }
+
+  // --- Init ---
+  loadRecords();
+  render();
+})();
+</script>
+</body>
+</html>
